@@ -15,14 +15,15 @@ from nltk.stem import WordNetLemmatizer
 
 
 class Preprocessor:
-    def __init__(self, input_file_path, input_csv_path):
+    def __init__(self, data_path, input_file_path, cleaned_file_path):
         """
         Input Files: resume_samples.txt
         Creating Files:
             1) resume_samples.csv
         """
-        self.input_file_path = input_file_path
-        self.input_csv_path = input_csv_path
+        self.data_path = data_path
+        self.input_file_path = self.data_path + input_file_path
+        self.cleaned_file_path = self.data_path + cleaned_file_path
         self.input_data = codecs.open(self.input_file_path, "rU", encoding='utf-8', errors='ignore')
 
         self.resume_df = self.read_dataset()
@@ -74,12 +75,21 @@ class Preprocessor:
         Calculate basic statistics for the dataset.
         """
         self.print_title("Statistics", '`', 20)
-        print("Total number of resumes:", len(self.resume_df))
-        print(f"Average length of resumes: {round(self.resume_df['Resume'].apply(len).mean())} words")
+        print("Total number of resumes:", len(self.cleaned_df))
+        print(f"Average length of resumes: {round(self.cleaned_df['Resume'].apply(len).mean())} words")
         print("Most common skills:")
         # TODO: Get most common skills
         # Process skillset
         # print(self.resume_df['Skillset'].value_counts().head())
+
+    def remove_repeating_neighbors(self, tokens, n=3):
+
+        dedup_tokens = []
+        for i, word in enumerate(tokens):
+            if word not in tokens[i+1: i+n+1]:
+                dedup_tokens.append(word)
+
+        return dedup_tokens
 
     def clean_resume_text(self, text):
         """
@@ -96,11 +106,13 @@ class Preprocessor:
         # Lemmatization
         lemmatizer = WordNetLemmatizer()
         tokens = [lemmatizer.lemmatize(token) for token in tokens]
+        # Remove duplicate neighbors
+        dedup_tokens = self.remove_repeating_neighbors(tokens)
         # Remove stopwords
         stop_words = set(stopwords.words('english'))
-        tokens = [token for token in tokens if token not in stop_words]
+        tokens_wo_sw = [token for token in dedup_tokens if token not in stop_words]
         # Concatenate tokens into cleaned text
-        cleaned_text = ' '.join(tokens)
+        cleaned_text = ' '.join(tokens_wo_sw)
 
         return cleaned_text
 
@@ -129,7 +141,6 @@ class Preprocessor:
         self.cleaned_df['Cleaned_Skillset'] = self.resume_df['Skillset'].apply(self.clean_skillset)
         # TODO: work on experience mentioned in skillset brackets
 
-
     def preprocess_resume_df(self):
         """
         Preprocess "Resume".
@@ -137,10 +148,10 @@ class Preprocessor:
         self.print_title("Preprocessing Resumes", '-', 20)
         self.cleaned_df['Cleaned_Resume'] = self.resume_df['Resume'].apply(self.clean_resume_text)
         # Add additional preprocessing steps or features if needed
-        self.cleaned_df.to_csv(self.input_csv_path, index=False)
+        self.cleaned_df.to_csv(self.cleaned_file_path, index=False)
 
     def read_cleaned_dataset(self):
-        self.cleaned_df = pd.read_csv(self.input_csv_path)
+        self.cleaned_df = pd.read_csv(self.cleaned_file_path)
 
     def generate_wordcloud(self, resume_index):
         """
