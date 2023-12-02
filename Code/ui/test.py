@@ -1,16 +1,20 @@
-import streamlit as st
-import numpy as np
-import pandas as pd
+def remove_repeating_words(words, range_limit=3):
+    unique_words = []
+    seen_words = set()
 
+    for i, word in enumerate(words):
+        if word not in seen_words:
+            unique_words.append(word)
+            seen_words.add(word)
 
-# %%--------------------------------------------------------------------------------------------------------------------
-st.subheader("***Line chart***")
+            # Remove words that are beyond the range limit
+            if i >= range_limit:
+                seen_words.remove(words[i - range_limit])
 
+    return unique_words
 
-# st.echo(): use in a with block to draw some code on the app, then execute it.
-with st.echo():
-    chart_data = pd.DataFrame(
-        np.random.randint(low=0, high=100, size=(20, 3)),
-        columns =['a', 'b', 'c'])
-
-    st.line_chart(chart_data)
+# Example usage:
+word_list = ["apple", "banana", "orange", "apple", 'kiwi', "grape", "banana", "kiwi", "apple", "orange"]
+result = remove_repeating_words(word_list)
+print(word_list)
+print(result)
