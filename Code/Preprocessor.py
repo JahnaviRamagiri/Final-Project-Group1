@@ -29,7 +29,7 @@ class Preprocessor:
         self.resume_df = self.read_dataset()
         self.stop_words = set(stopwords.words('english'))
         self.lemmatizer = WordNetLemmatizer()
-        self.cleaned_df = self.resume_df.copy(deep=True)
+        self.cleaned_df = pd.DataFrame()
 
     def print_title(self, title, pattern="*", pattern_length=20, num_blank_lines=1):
         """
@@ -120,8 +120,10 @@ class Preprocessor:
         """
         Clean and preprocess individual skillset.
         """
+        pattern = re.compile(r'\([^\)]*\)')
+        matched_skillset = re.sub(pattern, '', skillset)
         # Tokenization
-        skills = skillset.split(';')
+        skills = matched_skillset.split(';')
         # Lowercasing
         skills = [skill.lower() for skill in skills]
         # Remove duplicates
@@ -138,7 +140,7 @@ class Preprocessor:
         Preprocess "Skillset".
         """
         self.print_title("Preprocessing Skillset", '-', 20)
-        self.cleaned_df['Cleaned_Skillset'] = self.resume_df['Skillset'].apply(self.clean_skillset)
+        self.cleaned_df['Skillset'] = self.resume_df['Skillset'].apply(self.clean_skillset)
         # TODO: work on experience mentioned in skillset brackets
 
     def preprocess_resume_df(self):
@@ -146,7 +148,7 @@ class Preprocessor:
         Preprocess "Resume".
         """
         self.print_title("Preprocessing Resumes", '-', 20)
-        self.cleaned_df['Cleaned_Resume'] = self.resume_df['Resume'].apply(self.clean_resume_text)
+        self.cleaned_df['Resume'] = self.resume_df['Resume'].apply(self.clean_resume_text)
         # Add additional preprocessing steps or features if needed
         self.cleaned_df.to_csv(self.cleaned_file_path, index=False)
 
@@ -158,7 +160,7 @@ class Preprocessor:
         Generate a word cloud for a specific resume record.
         :param resume_index: Input the Resume Index number
         """
-        text = self.cleaned_df['Cleaned_Resume'][resume_index]
+        text = self.cleaned_df['Resume'][resume_index]
 
         # Generate WordCloud
         wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
