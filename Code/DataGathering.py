@@ -35,7 +35,7 @@ class DataGathering:
 
             lbl = codecs.open(self.data_path+file_name+".lab", "rU", encoding='utf-8', errors='ignore')
             lbl.seek(0)
-            lbl_list.append(lbl.read())
+            lbl_list.append(lbl.read().replace("\n", ","))
 
         self.df['Resume'] = resume_list
         self.df['Label'] = lbl_list
