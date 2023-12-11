@@ -22,6 +22,8 @@ model.load_state_dict(torch.load(model_path+'resume_label.pth', map_location=tor
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
+summarizer = pipeline("summarization")
+
 def predict_label(text):
     model.eval()
     encoding = tokenizer(text, return_tensors='pt', max_length=128, padding='max_length', truncation=True)
@@ -84,18 +86,6 @@ def convert_pdf_to_txt_file(path):
 
 @st.cache_data
 def summarize_text(text_input):
-    summarizer = pipeline("summarization")
-    summarized_output = summarizer(text_input,max_length= 100)
+    summarized_output = summarizer(text_input,max_length=200)
     return summarized_output
-
-@st.cache_data
-def summarize_resume(file):
-
-    # Extract text from PDF
-    resume_txt, pages = convert_pdf_to_txt_file(file)
-
-    # Summarize resume
-    summarised_text = summarize_text(resume_txt)
-
-    return summarised_text
-
+    return text_input.summary_text
