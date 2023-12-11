@@ -18,7 +18,7 @@ device = "cpu"
 labels = np.load(model_path+'labels.npy', allow_pickle=True)
 
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=10).to(device)
-model.load_state_dict(torch.load(model_path+'resume_label.pth'))
+model.load_state_dict(torch.load(model_path+'resume_label.pth', map_location=torch.device(device)))
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
@@ -34,7 +34,7 @@ def predict_label(text):
 
     preds = preds.detach().cpu().numpy()
 
-    threshold = 0.4  # You can adjust this based on your preference
+    threshold = 0.2  # You can adjust this based on your preference
     preds_binary = (np.array(preds) > threshold).astype(int)
 
     job_profiles = [label for value, label in zip(preds_binary[0], labels) if value]
