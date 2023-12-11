@@ -5,28 +5,43 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from io import StringIO
 from transformers import pipeline
-
-import pandas as pd
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+from transformers import BertForSequenceClassification
 import torch
 import numpy as np
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
 
 model_path = '../../Model/'
 
 device = "cpu"
+
+stop_words = set(stopwords.words("english"))
 
 labels = np.load(model_path+'labels.npy', allow_pickle=True)
 
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=10).to(device)
 model.load_state_dict(torch.load(model_path+'resume_label.pth', map_location=torch.device(device)))
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-
 summarizer = pipeline("summarization")
 
+vectorizer = TfidfVectorizer()
+
+# Load pre-trained BERT tokenizer
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+# Load pre-trained BERT model and tokenizer
+roberta_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+roberta_model = RobertaModel.from_pretrained('roberta-base')
+
+@st.cache_data
 def predict_label(text):
     model.eval()
-    encoding = tokenizer(text, return_tensors='pt', max_length=128, padding='max_length', truncation=True)
+    encoding = bert_tokenizer(text, return_tensors='pt', max_length=128, padding='max_length', truncation=True)
     input_ids = encoding['input_ids'].to(device)
     attention_mask = encoding['attention_mask'].to(device)
 
@@ -36,30 +51,43 @@ def predict_label(text):
 
     preds = preds.detach().cpu().numpy()
 
-    threshold = 0.2  # You can adjust this based on your preference
-    preds_binary = (np.array(preds) > threshold).astype(int)
-
-    job_profiles = [label for value, label in zip(preds_binary[0], labels) if value]
-
-    return job_profiles
+    return labels, preds
 
 
-@st.cache_data
-def classify_job_role(resume_text):
-    # Placeholder for job role classification model
-    return "Software Engineer", 0.85
+def compare_job_description1(resume_text, job_description):
+    vectors = vectorizer.fit_transform([resume_text, job_description])
+    similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
+    return similarity
+
+
+def compare_job_description(resume_text, job_description):
+
+    resume_text = " ".join(word for word in resume_text.split() if word.lower() not in stop_words)
+    job_description = " ".join(word for word in job_description.split() if word.lower() not in stop_words)
+
+    # Tokenize and get embeddings for the first document
+    inputs_doc1 = roberta_tokenizer(resume_text, return_tensors='pt', max_length=512, truncation=True)
+    outputs_doc1 = roberta_model(**inputs_doc1)
+    embeddings_doc1 = outputs_doc1.last_hidden_state.mean(dim=1)  # Using mean pooling for simplicity
+
+    # Tokenize and get embeddings for the second document
+    inputs_doc2 = roberta_tokenizer(job_description, return_tensors='pt', max_length=512, truncation=True)
+    outputs_doc2 = roberta_model(**inputs_doc2)
+    embeddings_doc2 = outputs_doc2.last_hidden_state.mean(dim=1)
+
+    # Calculate cosine similarity between the embeddings
+    similarity = cosine_similarity(
+        embeddings_doc1.detach().numpy(),
+        embeddings_doc2.detach().numpy(),
+    )[0][0]
+
+    return (similarity-0.9)*10
 
 
 @st.cache_data
 def identify_skillsets(resume_text):
     # Placeholder for skillset identification model
     return ["Python", "Machine Learning", "Data Analysis"]
-
-
-@st.cache_data
-def compare_job_description(resume_text, job_description):
-    # Placeholder for job description comparison model
-    return 0.75
 
 
 @st.cache_data
@@ -86,6 +114,6 @@ def convert_pdf_to_txt_file(path):
 
 @st.cache_data
 def summarize_text(text_input):
-    summarized_output = summarizer(text_input,max_length=200)
+    summarized_output = summarizer(text_input,max_length=300)
+    print(type(summarized_output))
     return summarized_output
-    return text_input.summary_text
