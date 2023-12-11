@@ -20,6 +20,7 @@ from nltk.corpus import stopwords
 
 
 model_path = '../../Model/'
+
 device = "cpu"
 
 stop_words = set(stopwords.words("english"))
