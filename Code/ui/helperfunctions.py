@@ -11,7 +11,7 @@ from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 import numpy as np
 
-model_path = '../Model/'
+model_path = '../../Model/'
 
 device = "cpu"
 
