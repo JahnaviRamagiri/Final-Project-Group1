@@ -9,10 +9,14 @@ from torch.optim import Adam
 from tqdm import tqdm
 import numpy as np
 
+model_path = '../Model/'
+
 # Load your custom data
 data = pd.read_csv('../Data/Cleaned/clean_resume_lbl.csv')
 data = data.dropna()
-data = data[:1000]
+data = data
+
+print(data.shape)
 
 # Tokenize the text using BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
@@ -63,15 +67,15 @@ train_dataset = Transformer(
 )
 train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
 
-mlb_val = MultiLabelBinarizer()
-
 val_dataset = Transformer(
     texts=val_data['Resume'].values,
-    labels=mlb_val.fit_transform(val_data['Label'].apply(lambda x: x.split(','))),
+    labels=mlb.fit_transform(val_data['Label'].apply(lambda x: x.split(','))),
     tokenizer=tokenizer,
     max_len=max_len,
 )
 val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
+
+print(f"Number of classes: {len(mlb.classes_)}")
 
 # Define the model
 model = BertForSequenceClassification.from_pretrained(
@@ -86,7 +90,7 @@ optimizer = Adam(model.parameters(), lr=2e-5)
 criterion = nn.BCEWithLogitsLoss()
 
 # Training loop
-num_epochs = 5  # You can adjust this based on your dataset and resource constraints
+num_epochs = 1  # You can adjust this based on your dataset and resource constraints
 for epoch in range(num_epochs):
     model.train()
     for batch in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{num_epochs}'):
@@ -132,3 +136,6 @@ recall = recall_score(labels_binary, preds_binary, average='micro')
 f1 = f1_score(labels_binary, preds_binary, average='micro')
 
 print(f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1:.4f}')
+
+torch.save(model.state_dict(), model_path+'resume_label.pth')
+np.save(model_path+'labels.npy', mlb.classes_)
