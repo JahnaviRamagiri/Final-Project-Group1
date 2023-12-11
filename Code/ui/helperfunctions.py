@@ -5,10 +5,13 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from io import StringIO
 from transformers import pipeline
-from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel
+from transformers import RobertaTokenizer, RobertaModel
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-from transformers import BertForSequenceClassification
+import re
+
+import pandas as pd
+from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 import numpy as np
 import nltk
@@ -37,6 +40,20 @@ bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 # Load pre-trained BERT model and tokenizer
 roberta_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 roberta_model = RobertaModel.from_pretrained('roberta-base')
+
+
+def read_skillset():
+    df = pd.read_csv("../../Data/Cleaned/clean_norm_skillset.csv")
+    skills = ','.join(df['Skill'])
+    skillset = skills.split(',')
+    skillset = set(skillset)
+    skill_list = [element.strip() for element in skillset if len(element.split()) < 3]
+    skill_list = [x for x in skill_list if x]
+    return skill_list
+
+
+skillset = read_skillset()
+
 
 @st.cache_data
 def predict_label(text):
@@ -85,9 +102,21 @@ def compare_job_description(resume_text, job_description):
 
 
 @st.cache_data
+def extract_skills_from_resume(text, skills_list):
+    skills = []
+
+    for skill in skills_list:
+        pattern = r"\b{}\b".format(re.escape(skill))
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            skills.append(skill)
+    return set(skills)
+
+
+@st.cache_data
 def identify_skillsets(resume_text):
-    # Placeholder for skillset identification model
-    return ["Python", "Machine Learning", "Data Analysis"]
+    skills = extract_skills_from_resume(resume_text, skillset)
+    return skills
 
 
 @st.cache_data
@@ -115,5 +144,4 @@ def convert_pdf_to_txt_file(path):
 @st.cache_data
 def summarize_text(text_input):
     summarized_output = summarizer(text_input,max_length=300)
-    print(type(summarized_output))
     return summarized_output
