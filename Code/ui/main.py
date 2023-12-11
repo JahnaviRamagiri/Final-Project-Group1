@@ -11,7 +11,7 @@ def main():
         resume_text, pages = hf.convert_pdf_to_txt_file(uploaded_file)
 
         # Job Role Classification
-        job_role, confidence = hf.classify_job_role(resume_text)
+        job_role, confidence = hf.predict_label(resume_text)
         st.subheader(f"Predicted Job Role: {job_role} (Confidence: {confidence:.2%})")
 
         # Skillset Identification
