@@ -65,16 +65,41 @@ class Preprocessor:
         """
         Clean and preprocess individual skillset.
         """
+
         if skillset != skillset:
             return ''
+
+        skillset = skillset.lower()
         pattern = re.compile(r'\([^\)]*\)')
         matched_skillset = re.sub(pattern, '', skillset)
+
         # Tokenization
-        skills = matched_skillset.split(';')
-        # Lowercasing
-        skills = [skill.lower() for skill in skills]
+        skill_list = [item.strip() for item in matched_skillset.replace('/', ';').split(';')]
         # Remove duplicates
-        skills = list(set(skills))
+        skills = list(set(skill_list))
+        # Sorting
+        skills.sort()
+        # Join skills into a cleaned skillset
+        cleaned_skillset = skills
+
+        return cleaned_skillset
+
+    def clean_skills_norm(self, skillset):
+        """
+        Clean and preprocess individual skillset.
+        """
+
+        if skillset != skillset:
+            return ''
+
+        skillset = skillset.lower()
+        pattern = re.compile(r'\([^\)]*\)')
+        matched_skillset = re.sub(pattern, '', skillset)
+        # skill_list = [skill.strip() for skill in skills.split('/')]
+        # Tokenization
+        skill_list = [item.strip() for item in matched_skillset.replace('/', ',').split(',')]
+        # Remove duplicates
+        skills = list(set(skill_list))
         # Sorting
         skills.sort()
         # Join skills into a cleaned skillset
@@ -97,6 +122,11 @@ class Preprocessor:
         print_title("Preprocessing Resumes", '-', 20)
         self.cleaned_df['Resume'] = self.uncleaned_df['Resume'].apply(self.clean_resume_text)
         # Add additional preprocessing steps or features if needed
+    def preprocess_normalised_skills(self):
+        print_title("Preprocessing Normalised Skills", '-', 20)
+        self.cleaned_df['Skill'] = self.uncleaned_df['Skill'].apply(self.clean_skills_norm)
+
+
 
     def save_df(self):
         self.cleaned_df.to_csv(self.cleaned_file_path, index=False)
@@ -139,7 +169,7 @@ def generate_wordcloud(data, resume_index):
 
 if __name__ == "__main__":
 
-    if (not os.path.isfile("../Data/Cleaned/clean_resume_skill.csv")):
+    if (not os.path.isfile("../Data/Cleaned/clean_resume_skill1.csv")):
         resume_skill = Preprocessor("../Data/Uncleaned/uncleaned_resume_skill.csv", "../Data/Cleaned/clean_resume_skill.csv")
         resume_skill.preprocess_skillset_df()
         resume_skill.preprocess_resume_df()
@@ -152,3 +182,10 @@ if __name__ == "__main__":
         resume_lbl.cleaned_df['Label'] = resume_lbl.uncleaned_df['Label']
         resume_lbl.save_df()
         resume_lbl.generate_wordcloud(randint(0, len(resume_lbl.cleaned_df)))
+
+    if (not os.path.isfile("../Data/Cleaned/clean_norm_skillset1.csv")):
+        norm_skill = Preprocessor("../Data/Uncleaned/uncleaned_skill_class.csv", "../Data/Cleaned/clean_norm_skillset.csv")
+        norm_skill.preprocess_normalised_skills()
+        norm_skill.cleaned_df['Label'] = norm_skill.uncleaned_df['Class']
+        norm_skill.save_df()
+        # norm_skill.generate_wordcloud(randint(0, len(norm_skill.cleaned_df)))

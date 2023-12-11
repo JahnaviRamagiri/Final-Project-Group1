@@ -1,25 +1,30 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from transformers import BertTokenizer, BertForMultiLabelSequenceClassification
+from transformers import BertTokenizer, BertForSequenceClassification  # Updated import
 import torch
 from torch.utils.data import DataLoader, Dataset
 from torch import nn
 from torch.optim import Adam
 from tqdm import tqdm
 import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 # Load your custom data
-data = pd.read_csv('../Data/Cleaned/clean_resume_skill.csv')
+data = pd.read_csv('../Data/Cleaned/clean_norm_skillset.csv')
 data = data.dropna()
-data = data[:1000]
+# data = data[:1000]
 
 # Tokenize the text using BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-max_len = 10  # You can adjust this based on your dataset and resource constraints // change this
+max_len = 128  # Adjust this based on your dataset and resource constraints
 
+# Split the data into train and validation sets
+train_data, val_data = train_test_split(data, test_size=0.2, random_state=42)
 
-# Preprocess the data
+# Use the same MultiLabelBinarizer instance for both train and validation
+mlb = MultiLabelBinarizer()
+
 class Transformer(Dataset):
     def __init__(self, texts, labels, tokenizer, max_len):
         self.texts = texts
@@ -49,34 +54,29 @@ class Transformer(Dataset):
             'labels': torch.tensor(label, dtype=torch.float32),
         }
 
-# Split the data into train and validation sets
-train_data, val_data = train_test_split(data, test_size=0.2, random_state=42)
-
-mlb = MultiLabelBinarizer()
 
 # Prepare the data loaders
 train_dataset = Transformer(
-    texts=train_data['Resume'].values,
-    labels=mlb.fit_transform(train_data['Skill'].apply(lambda x: x.split(','))),
+    texts=train_data['Skill'].values,
+    labels=mlb.fit_transform(train_data['Label'].apply(lambda x: x.split(','))),
     tokenizer=tokenizer,
     max_len=max_len,
 )
 train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 
-mlb_val = MultiLabelBinarizer()
-
+# Use the same MultiLabelBinarizer instance for validation
 val_dataset = Transformer(
-    texts=val_data['Resume'].values,
-    labels=mlb_val.fit_transform(val_data['Skill'].apply(lambda x: x.split(','))),
+    texts=val_data['Skill'].values,
+    labels=mlb.transform(val_data['Label'].apply(lambda x: x.split(','))),  # Note: use transform instead of fit_transform
     tokenizer=tokenizer,
     max_len=max_len,
 )
 val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
 
 # Define the model
-model = BertForMultiLabelSequenceClassification.from_pretrained(
+model = BertForSequenceClassification.from_pretrained(
     'bert-base-uncased',
-    num_labels=len(mlb.classes_),
+    num_labels=len(mlb.classes_),  # Number of unique labels
 )
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
@@ -86,7 +86,7 @@ optimizer = Adam(model.parameters(), lr=2e-5)
 criterion = nn.BCEWithLogitsLoss()
 
 # Training loop
-num_epochs = 1  # You can adjust this based on your dataset and resource constraints
+num_epochs = 1  # Adjust this based on your dataset and resource constraints
 for epoch in range(num_epochs):
     model.train()
     for batch in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{num_epochs}'):
@@ -121,9 +121,7 @@ with torch.no_grad():
         all_labels.extend(labels.cpu().numpy())
 
 # Calculate evaluation metrics (e.g., precision, recall, F1 score)
-from sklearn.metrics import precision_score, recall_score, f1_score
-
-threshold = 0.4  # You can adjust this based on your preference
+threshold = 0.5  # Adjust this based on your preference
 preds_binary = (np.array(all_preds) > threshold).astype(int)
 labels_binary = np.array(all_labels)
 
@@ -132,4 +130,3 @@ recall = recall_score(labels_binary, preds_binary, average='micro')
 f1 = f1_score(labels_binary, preds_binary, average='micro')
 
 print(f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1:.4f}')
-# Add codes for Resume-Skill

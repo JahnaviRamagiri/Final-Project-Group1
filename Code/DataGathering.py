@@ -64,6 +64,26 @@ class DataGathering:
 
         self.df.to_csv(self.uncleaned_file_path, index=False)
 
+    def create_normalised_skillset_classes(self):
+        print_title("Creating Normalise skillset Dataset")
+
+        input_data = codecs.open(self.data_path, "rU", encoding='utf-8', errors='ignore')
+        input_data.seek(0)
+        data_lst = input_data.read().splitlines()
+
+        skill_set = []
+        norm_classes = []
+        for data in data_lst:
+            skills, normalized_class = map(str.strip, data.split(':'))
+            # skill_list = [skill.strip() for skill in skills.split('/')]
+            skill_set.append(skills)
+            norm_classes.append(normalized_class)
+
+        self.df['Skill'] = skill_set
+        self.df['Class'] = norm_classes
+
+        self.df.to_csv(self.uncleaned_file_path, index=False)
+
     def basic_statistics(self):
         """
         Calculate basic statistics for the dataset.
@@ -81,4 +101,8 @@ if __name__ == "__main__":
 
     resume_skill = DataGathering("../Data/Raw/resume_samples.txt", "../Data/Uncleaned/uncleaned_resume_skill.csv")
     resume_skill.create_resume_skill_data()
-    resume_lbl.basic_statistics()
+    resume_skill.basic_statistics()
+
+    skill_class = DataGathering("../Data/Raw/normlized_classes.txt", "../Data/Uncleaned/uncleaned_skill_class.csv")
+    skill_class.create_normalised_skillset_classes()
+    # skill_class.basic_statistics()
