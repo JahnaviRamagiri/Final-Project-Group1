@@ -9,10 +9,14 @@ def main():
     uploaded_file = st.file_uploader("Upload a Resume", type=["pdf", "docx"])
     if uploaded_file is not None:
         resume_text, pages = hf.convert_pdf_to_txt_file(uploaded_file)
+        resume_summary = hf.summarize_text(resume_text)
 
         # Job Role Classification
-        job_role, confidence = hf.predict_label(resume_text)
-        st.subheader(f"Predicted Job Role: {job_role} (Confidence: {confidence:.2%})")
+        # job_role, confidence = hf.predict_label(resume_text)
+        # st.subheader(f"Predicted Job Role: {job_role} (Confidence: {confidence:.2%})")
+
+        job_role = hf.predict_label(resume_text)
+        st.subheader(f"Predicted Job Role: {job_role})")
 
         # Skillset Identification
         skills = hf.identify_skillsets(resume_text)
@@ -32,7 +36,7 @@ def main():
 
         if display_summary:
             st.subheader("Resume Summary:")
-            st.text(resume_text)
+            st.text(resume_summary)
 
         if display_metrics:
             # Metrics visualization with sliders
