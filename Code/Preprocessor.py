@@ -88,7 +88,7 @@ class Preprocessor:
         """
         Clean and preprocess individual skillset.
         """
-
+        skill_ = []
         if skillset != skillset:
             return ''
 
@@ -103,7 +103,7 @@ class Preprocessor:
         # Sorting
         skills.sort()
         # Join skills into a cleaned skillset
-        cleaned_skillset = skills
+        cleaned_skillset = ', '.join(skills)
 
         return cleaned_skillset
 
