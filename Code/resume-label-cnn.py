@@ -8,6 +8,7 @@ from torch import nn
 from torch.optim import Adam
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 model_path = '../Model/'
 
@@ -117,8 +118,11 @@ criterion = nn.BCEWithLogitsLoss()
 
 epochs = 10
 train_losses = []
+val_losses = []
+
 for epoch in range(epochs):
     model.train()
+    epoch_loss_tr = 0.0
     for batch in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}'):
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -129,6 +133,38 @@ for epoch in range(epochs):
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
+
+        epoch_loss_tr += loss.item()
+
+    average_epoch_loss = epoch_loss_tr / len(train_loader)
+    train_losses.append(average_epoch_loss)
+    print(f'Epoch {epoch + 1}/{epochs}, Loss: {average_epoch_loss:.4f}')
+
+    epoch_loss_val = 0.0
+    with torch.no_grad():
+        for batch in tqdm(val_loader, desc='Validation'):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(input_ids, attention_mask=attention_mask)
+            loss = criterion(outputs, labels)
+            epoch_loss_val += loss.item()
+        val_losses.append(epoch_loss_val / len(val_loader))
+
+# Plotting the epoch vs. loss graph
+plt.plot(range(1, epochs + 1), train_losses, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Epoch vs. Training Loss')
+plt.show()
+
+# Plotting the epoch vs. loss graph
+plt.plot(range(1, epochs + 1), val_losses, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Epoch vs. Validation Loss')
+plt.show()
 
 # Evaluate the model on the validation set
 model.eval()
@@ -164,5 +200,5 @@ f1 = f1_score(labels_binary, preds_binary, average='micro')
 
 print(f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1:.4f}')
 
-torch.save(model.state_dict(), model_path+'resume_label_cnn.pth')
-np.save(model_path+'labels_cnn.npy', mlb.classes_)
+# torch.save(model.state_dict(), model_path+'resume_label_cnn.pth')
+# np.save(model_path+'labels_cnn.npy', mlb.classes_)
