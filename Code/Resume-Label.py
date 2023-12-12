@@ -123,9 +123,9 @@ for epoch in range(num_epochs):
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
             loss = outputs.loss
-            epoch_loss_tr += loss.item()
+            epoch_loss_val += loss.item()
 
-        val_losses.append(epoch_loss_tr / len(val_loader))
+        val_losses.append(epoch_loss_val / len(val_loader))
 
 
 # Plotting the epoch vs. loss graph

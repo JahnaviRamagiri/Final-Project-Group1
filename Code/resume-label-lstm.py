@@ -1,13 +1,14 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from transformers import BertTokenizer, BertForSequenceClassification, BertModel
+from transformers import BertTokenizer, BertModel
 import torch
 from torch.utils.data import DataLoader, Dataset
 from torch import nn
 from torch.optim import Adam
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
 model_path = '../Model/'
 
@@ -114,9 +115,11 @@ optimizer = Adam(model.parameters(), lr=2e-5)
 criterion = nn.BCEWithLogitsLoss()
 
 epochs = 10
-train_losses = []
+tr_losses = []
+val_losses = []
 for epoch in range(epochs):
     model.train()
+    epoch_loss_tr = 0.0
     for batch in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}'):
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
@@ -127,6 +130,39 @@ for epoch in range(epochs):
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
+
+        epoch_loss_tr += loss.item()
+
+    average_epoch_loss = epoch_loss_tr / len(train_loader)
+    tr_losses.append(average_epoch_loss)
+    print(f'Epoch {epoch + 1}/{epochs}, Loss: {average_epoch_loss:.4f}')
+
+    epoch_loss_val = 0.0
+    with torch.no_grad():
+        for batch in tqdm(val_loader, desc='Validation'):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(input_ids, attention_mask=attention_mask)
+            loss = criterion(outputs, labels)
+            epoch_loss_val += loss.item()
+
+        val_losses.append(epoch_loss_val / len(val_loader))
+
+# Plotting the epoch vs. loss graph
+plt.plot(range(1, epochs + 1), tr_losses, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Epoch vs. Training Loss')
+plt.show()
+
+# Plotting the epoch vs. loss graph
+plt.plot(range(1, epochs + 1), val_losses, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Epoch vs. Validation Loss')
+plt.show()
 
 # Evaluate the model on the validation set
 model.eval()
@@ -164,4 +200,3 @@ print(f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1:.4f}')
 
 torch.save(model.state_dict(), model_path+'resume_label_lstm.pth')
 np.save(model_path+'labels_lstm.npy', mlb.classes_)
-print(train_losses, val_losses)
