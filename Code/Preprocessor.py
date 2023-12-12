@@ -169,7 +169,7 @@ def generate_wordcloud(data, resume_index):
 
 if __name__ == "__main__":
 
-    if (not os.path.isfile("../Data/Cleaned/clean_resume_skill1.csv")):
+    if (not os.path.isfile("../Data/Cleaned/clean_resume_skill.csv")):
         resume_skill = Preprocessor("../Data/Uncleaned/uncleaned_resume_skill.csv", "../Data/Cleaned/clean_resume_skill.csv")
         resume_skill.preprocess_skillset_df()
         resume_skill.preprocess_resume_df()
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         resume_lbl.save_df()
         resume_lbl.generate_wordcloud(randint(0, len(resume_lbl.cleaned_df)))
 
-    if (not os.path.isfile("../Data/Cleaned/clean_norm_skillset1.csv")):
+    if (not os.path.isfile("../Data/Cleaned/clean_norm_skillset.csv")):
         norm_skill = Preprocessor("../Data/Uncleaned/uncleaned_skill_class.csv", "../Data/Cleaned/clean_norm_skillset.csv")
         norm_skill.preprocess_normalised_skills()
         norm_skill.cleaned_df['Label'] = norm_skill.uncleaned_df['Class']
